@@ -94,6 +94,14 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// Check if user has completed onboarding
+	hasCompletedOnboarding, err := middleware.CheckUserOnboardingStatus(user.ID)
+	if err != nil {
+		log.Printf("Error checking onboarding status for user %d: %v", user.ID, err)
+		// Continue anyway, default to false
+		hasCompletedOnboarding = false
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"token": token,
 		"user": gin.H{
@@ -101,6 +109,7 @@ func Login(c *gin.Context) {
 			"username": user.Username,
 			"email":    user.Email,
 		},
+		"hasCompletedOnboarding": hasCompletedOnboarding,
 	})
 }
 

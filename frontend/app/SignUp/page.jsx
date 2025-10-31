@@ -2,6 +2,7 @@
 import { motion } from "framer-motion";
 import { Bricolage_Grotesque } from "next/font/google";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const bricolageGrotesque = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -10,11 +11,43 @@ const bricolageGrotesque = Bricolage_Grotesque({
 
 export default function SignUp() {
   const router = useRouter();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    // TODO: Replace with real signup API; on success, redirect to onboarding
-    router.push("/onboarding");
+    setError("");
+    if (!name || !email || !password) {
+      setError("Please fill all fields");
+      return;
+    }
+    setLoading(true);
+    try {
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8080";
+      const res = await fetch(`${apiBaseUrl}/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: name, email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || "Signup failed");
+      }
+      if (data?.token) {
+        localStorage.setItem("authToken", data.token);
+      }
+      if (data?.user?.id) {
+        localStorage.setItem("userId", data.user.id.toString());
+      }
+      router.push("/onboarding");
+    } catch (err) {
+      setError(err.message || "Signup failed");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -42,18 +75,22 @@ export default function SignUp() {
               <input
                 type="text"
                 placeholder="Enter your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 text-gray-100 placeholder-gray-500"
               />
             </div>
 
-            {/* Email / Phone */}
+            {/* Email */}
             <div>
               <label className="block text-sm text-gray-300 mb-2">
-                Email or Phone
+                Email
               </label>
               <input
-                type="text"
-                placeholder="Enter your email or phone"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 text-gray-100 placeholder-gray-500"
               />
             </div>
@@ -64,6 +101,8 @@ export default function SignUp() {
               <input
                 type="password"
                 placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 text-gray-100 placeholder-gray-500"
               />
             </div>
@@ -73,15 +112,18 @@ export default function SignUp() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.97 }}
               type="submit"
-              className="relative w-full py-3 mt-4 font-semibold rounded-full overflow-hidden"
+              disabled={loading}
+              className="relative w-full py-3 mt-4 font-semibold rounded-full overflow-hidden disabled:opacity-60"
             >
               <div className="absolute inset-0 bg-violet-900"></div>
               <div className="absolute inset-0 bg-linear-to-r from-violet-600 to-cyan-800 opacity-0 group-hover:opacity-100 blur-2xl transition-opacity"></div>
-              <span className="relative z-10 text-white">Sign Up</span>
+              <span className="relative z-10 text-white">{loading ? "Signing Up..." : "Sign Up"}</span>
             </motion.button>
           </form>
 
-          
+          {error && (
+            <p className="mt-4 text-center text-sm text-red-400">{error}</p>
+          )}
         </div>
       </motion.div>
     </div>
