@@ -4,6 +4,7 @@ import { Bricolage_Grotesque } from "next/font/google";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+
 const bricolageGrotesque = Bricolage_Grotesque({
   subsets: ["latin"],
   weight: ["700"],
