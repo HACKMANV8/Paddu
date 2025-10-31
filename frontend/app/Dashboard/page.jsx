@@ -2,8 +2,8 @@
 import React from "react";
 import Head from "next/head";
 import Image from "next/image";
-import Resources from "../components/Resources";
-import ActivityGrid from "../components/ActivityGrid";
+import Resources from "../../components/Resources";
+import ActivityGrid from "../../components/ActivityGrid";
 
 export default function Dashboard() {
   return (

@@ -1,4 +1,6 @@
-import { StarryBackground,Title } from "./Landing/page"
+
+
+import { StarryBackground,Title } from "../components/Landing";
 export default function Home(){
   return(
     <div>
