@@ -1,13 +1,15 @@
 package handlers
 
 import (
-	"net/http"
-	"time"
+    "fmt"
+    "net/http"
+    "strings"
+    "time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"golang-service/config"
-	"golang-service/models"
+    "github.com/gin-gonic/gin"
+    "github.com/google/uuid"
+    "golang-service/config"
+    "golang-service/models"
 )
 
 // 🧩 Start a new chat
@@ -74,33 +76,42 @@ func SendMessage(c *gin.Context) {
 		return
 	}
 
-	// Save user message
-	userMsgID := uuid.New().String()
-	_, err = config.DB.Exec(`
-		INSERT INTO messages (id, chat_id, role, content, created_at)
-		VALUES ($1, $2, 'user', $3, $4)
-	`, userMsgID, body.ChatID, body.Message, time.Now())
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+    // Save user message
+    userMsgID := uuid.New().String()
+    _, err = config.DB.Exec(`
+        INSERT INTO messages (id, chat_id, role, content, created_at)
+        VALUES ($1, $2, 'user', $3, $4)
+    `, userMsgID, body.ChatID, body.Message, time.Now())
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
 
-	// Generate bot reply (for now static)
-	botReply := generateBotReply(body.Message)
+    // Enforce topic consistency: if message is off-topic, do NOT create a bot reply
+    if !isMessageOnTopic(body.Message, chat.Topic) {
+        c.JSON(http.StatusConflict, gin.H{
+            "error": fmt.Sprintf("Message is off-topic. This chat is for '%s'. Start a new chat for a different topic.", chat.Topic),
+            "required_topic": chat.Topic,
+        })
+        return
+    }
 
-	botMsgID := uuid.New().String()
-	_, err = config.DB.Exec(`
-		INSERT INTO messages (id, chat_id, role, content, created_at)
-		VALUES ($1, $2, 'bot', $3, $4)
-	`, botMsgID, body.ChatID, botReply, time.Now())
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+    // Generate bot reply (for now static)
+    botReply := generateBotReply(body.Message)
 
-	c.JSON(http.StatusOK, gin.H{
-		"reply": botReply,
-	})
+    botMsgID := uuid.New().String()
+    _, err = config.DB.Exec(`
+        INSERT INTO messages (id, chat_id, role, content, created_at)
+        VALUES ($1, $2, 'bot', $3, $4)
+    `, botMsgID, body.ChatID, botReply, time.Now())
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "reply": botReply,
+    })
 }
 
 // 🧩 Get full chat history
@@ -117,7 +128,16 @@ func GetChatHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, messages)
 }
 
-// 🧠 Dummy AI response
 func generateBotReply(input string) string {
 	return "Bot reply to: " + input
+}
+
+// isMessageOnTopic performs a simple check to see if the message mentions the chat topic.
+func isMessageOnTopic(message string, topic string) bool {
+    m := strings.ToLower(message)
+    t := strings.ToLower(strings.TrimSpace(topic))
+    if t == "" {
+        return true
+    }
+    return strings.Contains(m, t)
 }

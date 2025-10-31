@@ -59,23 +59,23 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950 text-white">
+    <div className="flex h-screen bg-gradient-to-br from-[#020617] via-[#0b132b] to-[#0a1128] text-white">
       {/* Sidebar */}
       <div
-        className={`fixed top-0 left-0 h-full bg-darkblue-900/50 backdrop-blur-md border-r border-blue-700/30 transition-transform duration-300 z-50 ${
+        className={`fixed top-0 left-0 h-full bg-[#0b132b]/80 backdrop-blur-md border-r border-[#1e3a8a]/40 transition-transform duration-300 z-50 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } w-72`}
       >
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
-          <div className="flex items-center justify-between p-4 border-b border-blue-700/30">
+          <div className="flex items-center justify-between p-4 border-b border-[#1e3a8a]/40">
             <div>
               <h2 className="text-xl font-bold text-blue-100">Khoj</h2>
               <p className="text-xs text-blue-300">Tunnel your curiosity</p>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="p-2 hover:bg-blue-800/50 rounded-lg transition-colors"
+              className="p-2 hover:bg-[#1e3a8a]/40 rounded-lg transition-colors"
             >
               <X size={20} />
             </button>
@@ -85,7 +85,7 @@ export default function Chat() {
           <div className="p-4">
             <button
               onClick={handleNewChat}
-              className="w-full flex items-center gap-3 px-4 py-3 bg-blue-700 hover:bg-blue-600 rounded-lg transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 bg-[#1d4ed8] hover:bg-[#2563eb] rounded-lg transition-colors"
             >
               <Plus size={20} />
               <span className="font-medium">New Chat</span>
@@ -93,8 +93,8 @@ export default function Chat() {
           </div>
 
           {/* Menu Options */}
-          <div className="px-4 pb-4 border-b border-blue-700/30">
-            <button className="w-full flex items-center gap-3 px-4 py-3 hover:bg-blue-800/50 rounded-lg transition-colors">
+          <div className="px-4 pb-4 border-b border-[#1e3a8a]/40">
+            <button className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#1e3a8a]/40 rounded-lg transition-colors">
               <LayoutDashboard size={20} />
               <span>Dashboard</span>
             </button>
@@ -107,7 +107,7 @@ export default function Chat() {
               {previousChats.map(chat => (
                 <button
                   key={chat.id}
-                  className="w-full flex items-start gap-3 px-3 py-2 hover:bg-blue-800/50 rounded-lg transition-colors text-left"
+                  className="w-full flex items-start gap-3 px-3 py-2 hover:bg-[#1e3a8a]/40 rounded-lg transition-colors text-left"
                 >
                   <MessageSquare size={18} className="mt-1 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
@@ -124,10 +124,10 @@ export default function Chat() {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="flex items-center gap-4 p-4 border-b border-blue-700/30 bg-blue-900/30 backdrop-blur-sm">
+        <div className="flex items-center gap-4 p-4 border-b border-[#1e3a8a]/40 bg-[#0b132b]/70 backdrop-blur-sm">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 hover:bg-blue-800/50 rounded-lg transition-colors"
+            className="p-2 hover:bg-[#1e3a8a]/40 rounded-lg transition-colors"
           >
             <Menu size={24} />
           </button>
@@ -147,8 +147,8 @@ export default function Chat() {
               <div
                 className={`max-w-2xl px-6 py-4 rounded-2xl ${
                   message.sender === 'user'
-                    ? 'bg-blue-600 ml-12'
-                    : 'bg-blue-800/50 mr-12'
+                    ? 'bg-[#1d4ed8] ml-12'
+                    : 'bg-[#1e3a8a]/60 mr-12'
                 }`}
               >
                 <p className="text-sm leading-relaxed">{message.text}</p>
@@ -159,9 +159,9 @@ export default function Chat() {
         </div>
 
         {/* Input Area */}
-        <div className="p-6 border-t border-blue-700/30 bg-blue-900/30 backdrop-blur-sm">
+        <div className="p-6 border-t border-[#1e3a8a]/40 bg-[#0b132b]/70 backdrop-blur-sm">
           <div className="max-w-4xl mx-auto">
-            <div className="flex items-end gap-3 bg-blue-800/30 rounded-2xl p-2 border border-blue-700/30">
+            <div className="flex items-end gap-3 bg-[#1e293b]/40 rounded-2xl p-2 border border-[#1e3a8a]/40">
               <textarea
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
@@ -174,7 +174,7 @@ export default function Chat() {
               <button
                 onClick={handleSend}
                 disabled={!inputValue.trim()}
-                className="p-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-50 rounded-xl transition-colors"
+                className="p-3 bg-[#1d4ed8] hover:bg-[#2563eb] disabled:bg-[#1e3a8a] disabled:opacity-50 rounded-xl transition-colors"
               >
                 <Send size={20} />
               </button>
