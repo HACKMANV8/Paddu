@@ -76,6 +76,41 @@ fmt.Println("✅ Environment variables loaded successfully!")
 		answer TEXT NOT NULL
 	);`
 
+	createSchedules := `
+	CREATE TABLE IF NOT EXISTS schedules (
+		id SERIAL PRIMARY KEY,
+		user_id INTEGER NOT NULL,
+		chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+		topic TEXT NOT NULL,
+		scheduled_time TIMESTAMP NOT NULL,
+		active BOOLEAN DEFAULT true,
+		created_at TIMESTAMP DEFAULT NOW()
+	);`
+
+	createQuizzes := `
+	CREATE TABLE IF NOT EXISTS quizzes (
+		id SERIAL PRIMARY KEY,
+		user_id INTEGER NOT NULL,
+		chat_id TEXT NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+		topic TEXT NOT NULL,
+		status TEXT DEFAULT 'pending',
+		score INTEGER DEFAULT 0,
+		total_questions INTEGER NOT NULL,
+		created_at TIMESTAMP DEFAULT NOW(),
+		completed_at TIMESTAMP
+	);`
+
+	createQuizQuestions := `
+	CREATE TABLE IF NOT EXISTS quiz_questions (
+		id SERIAL PRIMARY KEY,
+		quiz_id INTEGER NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
+		question TEXT NOT NULL,
+		answer TEXT NOT NULL,
+		user_answer TEXT,
+		is_correct BOOLEAN,
+		order_num INTEGER NOT NULL
+	);`
+
 	if _, err := db.Exec(createUsers); err != nil {
 		log.Fatal("Failed creating users table:", err)
 	}
@@ -87,6 +122,15 @@ fmt.Println("✅ Environment variables loaded successfully!")
 	}
 	if _, err := db.Exec(createUserAnswers); err != nil {
 		log.Fatal("Failed creating user_answers table:", err)
+	}
+	if _, err := db.Exec(createSchedules); err != nil {
+		log.Fatal("Failed creating schedules table:", err)
+	}
+	if _, err := db.Exec(createQuizzes); err != nil {
+		log.Fatal("Failed creating quizzes table:", err)
+	}
+	if _, err := db.Exec(createQuizQuestions); err != nil {
+		log.Fatal("Failed creating quiz_questions table:", err)
 	}
 
       DB=db
