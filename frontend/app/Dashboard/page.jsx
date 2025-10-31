@@ -1,11 +1,35 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import Image from "next/image";
-import Resources from "../components/Resources";
-import ActivityGrid from "../components/ActivityGrid";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { MessageSquare } from "lucide-react";
+import Resources from "../../components/Resources";
+import ActivityGrid from "../../components/ActivityGrid";
 
 export default function Dashboard() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [userEmail, setUserEmail] = useState("");
+
+  useEffect(() => {
+    // Retrieve user data from localStorage
+    const storedUsername = localStorage.getItem("username") || "";
+    const storedEmail = localStorage.getItem("userEmail") || "";
+    setUsername(storedUsername);
+    setUserEmail(storedEmail);
+  }, []);
+
+  const handleLogout = () => {
+    // Clear all stored data
+    localStorage.clear();
+    sessionStorage.clear();
+    // Redirect to landing page (root)
+    router.push("/");
+  };
+  
   return (
     <>
       <Head>
@@ -53,15 +77,22 @@ export default function Dashboard() {
                   <div className="flex flex-col">
                     
                     <h1 className="text-white text-base font-medium leading-normal">
-                      Olivia Chen
+                      {username || "User"}
                     </h1>
                     <p className="text-gray-400 dark:text-[#ab9db9] text-sm font-normal leading-normal">
-                      olivia.c@example.com
+                      {userEmail || "No email"}
                     </p>
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 mt-4">
-                  <a className="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/20 text-primary" href="#">
+                  <Link 
+                    href="/Dashboard" 
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-200 ${
+                      pathname?.toLowerCase() === "/dashboard" 
+                        ? "bg-primary/20 text-primary" 
+                        : "hover:bg-violet-500/10 text-white"
+                    }`}
+                  >
                      <Image
           src="/layout.png"
           alt="Dashboard Icon"
@@ -70,8 +101,22 @@ export default function Dashboard() {
           className="object-contain"
         />
                     <p className="text-sm font-medium leading-normal">Dashboard</p>
-                  </a>
-                  <a className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-violet-500/10 transition-colors duration-200 text-white" href="#">
+                  </Link>
+                  <Link 
+                    href="/chat" 
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-200 ${
+                      pathname === "/chat" 
+                        ? "bg-primary/20 text-primary" 
+                        : "hover:bg-violet-500/10 text-white"
+                    }`}
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                    <p className="text-sm font-medium leading-normal">Chat</p>
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-violet-500/10 transition-colors duration-200 text-white"
+                  >
                      <Image
           src="/people(1).png"
           alt=" Icon"
@@ -80,8 +125,11 @@ export default function Dashboard() {
           className="object-contain"
         />
                     <p className="text-sm font-medium leading-normal">Profile</p>
-                  </a>
-                  <a className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-violet-500/10 transition-colors duration-200 text-white" href="#">
+                  </Link>
+                  <Link 
+                    href="#" 
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-violet-500/10 transition-colors duration-200 text-white"
+                  >
                      <Image
           src="/setting.png"
           alt=" Icon"
@@ -90,14 +138,16 @@ export default function Dashboard() {
           className="object-contain"
         />
                     <p className="text-sm font-medium leading-normal">Settings</p>
-                  </a>
+                  </Link>
                 </div>
               </div>
               <div className="border-t border-violet-500/10 pt-4">
-                <a className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-900/10 transition-colors duration-200 text-white" href="#">
-                  
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-900/10 transition-colors duration-200 text-white"
+                >
                   <p className="text-sm font-medium leading-normal">Logout</p>
-                </a>
+                </button>
               </div>
             </div>
           </aside>

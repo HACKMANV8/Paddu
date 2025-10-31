@@ -43,6 +43,12 @@ export default function SignUp() {
       if (data?.user?.id) {
         localStorage.setItem("userId", data.user.id.toString());
       }
+      if (data?.user?.username) {
+        localStorage.setItem("username", data.user.username);
+      }
+      if (data?.user?.email) {
+        localStorage.setItem("userEmail", data.user.email);
+      }
       router.push("/onboarding");
     } catch (err) {
       setError(err.message || "Signup failed");

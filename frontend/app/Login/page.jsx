@@ -41,6 +41,12 @@ export default function Login() {
       if (data?.user?.id) {
         localStorage.setItem("userId", data.user.id.toString());
       }
+      if (data?.user?.username) {
+        localStorage.setItem("username", data.user.username);
+      }
+      if (data?.user?.email) {
+        localStorage.setItem("userEmail", data.user.email);
+      }
       // If user has completed onboarding, go to chat; otherwise go to onboarding
       if (data?.hasCompletedOnboarding) {
         router.push("/chat");

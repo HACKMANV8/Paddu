@@ -200,4 +200,15 @@ function Title() {
   );
 }
 
+// Named exports for reuse in other components
 export { StarryBackground, Title };
+
+// Default export for Next.js page
+export default function Landing() {
+  return (
+    <>
+      <StarryBackground />
+      <Title />
+    </>
+  );
+}

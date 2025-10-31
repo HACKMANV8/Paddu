@@ -1,8 +1,14 @@
 'use client'
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 export default function ActivityGrid() {
   const [timeframe, setTimeframe] = useState("Weekly");
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Ensure component only renders activity data on client side
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const getActivityData = () => {
     switch (timeframe) {
@@ -32,7 +38,14 @@ export default function ActivityGrid() {
     }
   };
 
-  const activityData = getActivityData();
+  // Only generate activity data on client side to avoid hydration mismatch
+  const activityData = useMemo(() => {
+    if (!isMounted) {
+      // Return empty array or default values during SSR
+      return [];
+    }
+    return getActivityData();
+  }, [timeframe, isMounted]);
 
   return (
     <div className="mt-6">
@@ -68,12 +81,24 @@ export default function ActivityGrid() {
             : "grid-cols-13"
         }`}
       >
-        {activityData.map((level, index) => (
-          <div
-            key={index}
-            className={`aspect-square rounded-sm ${getOpacity(level)} transition-all duration-300`}
-          ></div>
-        ))}
+        {isMounted && activityData.length > 0 ? (
+          activityData.map((level, index) => (
+            <div
+              key={index}
+              className={`aspect-square rounded-sm ${getOpacity(level)} transition-all duration-300`}
+            ></div>
+          ))
+        ) : (
+          // Placeholder during SSR/initial render
+          Array.from({ 
+            length: timeframe === "Weekly" ? 7 : timeframe === "Monthly" ? 30 : 52 
+          }).map((_, index) => (
+            <div
+              key={index}
+              className="aspect-square rounded-sm bg-violet-600/10 transition-all duration-300"
+            ></div>
+          ))
+        )}
       </div>
     </div>
   );
