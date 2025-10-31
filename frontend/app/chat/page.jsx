@@ -1,8 +1,84 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Bot, User, Sparkles, LayoutGrid, MessageSquare, Menu, X, Trash2 } from "lucide-react";
+import { Send, Bot, User, Sparkles, LayoutGrid, MessageSquare, Menu, X, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+
+// Simple typewriter effect for AI messages - like ChatGPT/Gemini
+const TypewriterMessage = ({ text, messageId, isNew }) => {
+  const [displayedText, setDisplayedText] = useState(isNew ? "" : text);
+  const [showCursor, setShowCursor] = useState(isNew);
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    if (!isNew) {
+      setDisplayedText(text);
+      setShowCursor(false);
+      return;
+    }
+
+    let currentIndex = 0;
+    setDisplayedText("");
+    setShowCursor(true);
+
+    const typeNext = () => {
+      if (currentIndex < text.length) {
+        // Type word by word for more natural feel, or by character if no space nearby
+        let nextIndex = currentIndex;
+        
+        // Try to find next word boundary (space or newline)
+        const remainingText = text.slice(currentIndex);
+        const spaceIndex = remainingText.indexOf(' ');
+        const newlineIndex = remainingText.indexOf('\n');
+        
+        if (spaceIndex === 0 || newlineIndex === 0) {
+          // Already at word boundary, include the space/newline
+          nextIndex = currentIndex + 1;
+        } else if (spaceIndex > 0 && spaceIndex <= 8) {
+          // Space is nearby, type up to the space
+          nextIndex = currentIndex + spaceIndex + 1;
+        } else if (newlineIndex > 0 && newlineIndex <= 8) {
+          // Newline is nearby, type up to the newline
+          nextIndex = currentIndex + newlineIndex + 1;
+        } else {
+          // No nearby word boundary, type 2-4 characters
+          nextIndex = currentIndex + Math.floor(Math.random() * 3 + 2);
+        }
+        
+        nextIndex = Math.min(nextIndex, text.length);
+        setDisplayedText(text.slice(0, nextIndex));
+        currentIndex = nextIndex;
+        
+        // Variable delay: faster for spaces, slightly slower for words
+        const delay = currentIndex < text.length && (text[currentIndex - 1] === ' ' || text[currentIndex - 1] === '\n')
+          ? 20  // Faster after spaces
+          : 30; // Normal speed for characters
+        
+        timeoutRef.current = setTimeout(typeNext, delay);
+      } else {
+        setShowCursor(false);
+      }
+    };
+
+    // Start typing after brief pause
+    timeoutRef.current = setTimeout(typeNext, 50);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [text, messageId, isNew]);
+
+  return (
+    <span>
+      {displayedText}
+      {showCursor && (
+        <span className="inline-block w-[2px] h-4 bg-violet-400 ml-0.5 animate-pulse" />
+      )}
+    </span>
+  );
+};
 
 export default function ChatPage() {
   const router = useRouter();
@@ -18,6 +94,8 @@ export default function ChatPage() {
   const [chatList, setChatList] = useState([]);
   const [loadingChats, setLoadingChats] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [newBotMessages, setNewBotMessages] = useState(new Set());
+  const [showNewChatForm, setShowNewChatForm] = useState(false);
 
   useEffect(() => {
     // Set sidebar open by default on desktop, closed on mobile
@@ -104,6 +182,7 @@ export default function ChatPage() {
       if (res.ok) {
         const history = await res.json();
         setMessages(history || []);
+        setNewBotMessages(new Set()); // Clear new messages when loading history
       }
     } catch (err) {
       console.error("Failed to load chat history:", err);
@@ -138,6 +217,7 @@ export default function ChatPage() {
       // Handle both new and existing chats
       setChatId(data.chat_id);
       setTopic(topicInput.trim());
+      setShowNewChatForm(false); // Hide the form after starting chat
       sessionStorage.setItem("chatId", data.chat_id);
       sessionStorage.setItem("chatTopic", topicInput.trim());
       
@@ -146,6 +226,7 @@ export default function ChatPage() {
         await loadChatHistory(data.chat_id);
       } else {
         setMessages([]);
+        setNewBotMessages(new Set());
       }
       
       // Reload chat list to refresh the sidebar
@@ -215,6 +296,7 @@ export default function ChatPage() {
       }
 
       // Replace temp message with real message from backend
+      const botMessageId = `bot-${Date.now()}`;
       setMessages((prev) => {
         const filtered = prev.filter((msg) => msg.id !== tempUserMsg.id);
         // Add bot reply
@@ -227,13 +309,15 @@ export default function ChatPage() {
             created_at: new Date().toISOString(),
           },
           {
-            id: `bot-${Date.now()}`,
+            id: botMessageId,
             role: "bot",
             content: data.reply,
             created_at: new Date().toISOString(),
           },
         ];
       });
+      // Mark this bot message as new for typewriter effect
+      setNewBotMessages((prev) => new Set([...prev, botMessageId]));
       // Refresh chat list to update last modified time
       if (userId) {
         loadUserChats(userId);
@@ -261,6 +345,9 @@ export default function ChatPage() {
     setTopic("");
     setTopicInput("");
     setMessages([]);
+    setNewBotMessages(new Set());
+    setShowNewChatForm(true); // Show the form when clicking New Chat
+    setError("");
     sessionStorage.removeItem("chatId");
     sessionStorage.removeItem("chatTopic");
     // Reload chat list after starting new chat
@@ -272,6 +359,7 @@ export default function ChatPage() {
   const loadChat = async (selectedChatId, selectedTopic) => {
     setChatId(selectedChatId);
     setTopic(selectedTopic);
+    setShowNewChatForm(false); // Hide form when loading an existing chat
     sessionStorage.setItem("chatId", selectedChatId);
     sessionStorage.setItem("chatTopic", selectedTopic);
     await loadChatHistory(selectedChatId);
@@ -349,6 +437,7 @@ export default function ChatPage() {
         setChatId(null);
         setTopic("");
         setMessages([]);
+        setNewBotMessages(new Set());
         sessionStorage.removeItem("chatId");
         sessionStorage.removeItem("chatTopic");
       }
@@ -397,8 +486,8 @@ export default function ChatPage() {
     );
   }
 
-  // Show topic input only if chat hasn't started AND user has no chats
-  if (!chatId && !loadingChats && chatList.length === 0) {
+  // Show topic input as full screen if no chats exist
+  if (!showNewChatForm && !chatId && !loadingChats && chatList.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0014] to-[#1a0033] text-white p-4">
         <motion.div
@@ -464,7 +553,121 @@ export default function ChatPage() {
 
   // Show chat interface
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0014] to-[#1a0033] text-white flex">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0014] to-[#1a0033] text-white flex relative">
+      {/* Mobile backdrop overlay */}
+      {sidebarOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 lg:hidden"
+        />
+      )}
+      
+      {/* Toggle Button - Fixed in middle, always visible */}
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="fixed top-1/2 -translate-y-1/2 bg-gray-900/90 backdrop-blur-lg border border-white/20 border-l-0 rounded-r-lg p-2.5 z-40 hover:bg-gray-800/90 shadow-lg transition-all duration-300"
+        aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+        animate={{
+          left: sidebarOpen ? "280px" : "0px"
+        }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+      >
+        {sidebarOpen ? (
+          <ChevronLeft className="w-5 h-5 text-white" />
+        ) : (
+          <ChevronRight className="w-5 h-5 text-white" />
+        )}
+      </motion.button>
+
+      {/* New Chat Form Overlay - appears when showNewChatForm is true */}
+      {showNewChatForm && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowNewChatForm(false)}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 40 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative bg-gray-900/90 backdrop-blur-lg rounded-2xl shadow-[0_0_40px_rgba(0,0,0)] p-10 w-full max-w-md border border-white/10">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-900 to-neutral-600 rounded-2xl opacity-20 blur-lg"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center justify-center">
+                    <Sparkles className="w-12 h-12 text-violet-400" />
+                  </div>
+                  <button
+                    onClick={() => setShowNewChatForm(false)}
+                    className="p-2 rounded-lg hover:bg-white/10 transition text-gray-400 hover:text-white"
+                    aria-label="Close"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <h2 className="text-3xl font-extrabold text-center mb-2 bg-gradient-to-r from-violet-50 to-violet-100 bg-clip-text text-transparent">
+                  Start a Chat
+                </h2>
+                <p className="text-center text-gray-400 mb-6 text-sm">
+                  Enter a topic you&apos;d like to learn about
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-2">Topic</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., algebra, physics, literature..."
+                      value={topicInput}
+                      onChange={(e) => setTopicInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter" && !startingChat) {
+                          startChat();
+                        }
+                      }}
+                      className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 text-gray-100 placeholder-gray-500"
+                      disabled={startingChat}
+                      autoFocus
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                      {error}
+                    </div>
+                  )}
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={startChat}
+                    disabled={startingChat || !topicInput.trim()}
+                    className="relative w-full py-3 font-semibold rounded-full overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed bg-gradient-to-r from-violet-700 via-violet-600 to-indigo-600 hover:shadow-[0_0_24px_-4px_rgba(217,70,239,0.8)]"
+                  >
+                    <span className="relative z-10 text-white">
+                      {startingChat ? "Starting..." : "Start Chat"}
+                    </span>
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+      
       {/* Sidebar */}
       <motion.aside
         initial={false}
@@ -472,7 +675,7 @@ export default function ChatPage() {
           width: sidebarOpen ? "280px" : "0px",
         }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="h-screen bg-gray-900/60 backdrop-blur-lg border-r border-white/10 flex-shrink-0 overflow-hidden"
+        className="fixed left-0 top-0 h-screen bg-gray-900/60 backdrop-blur-lg border-r border-white/10 flex-shrink-0 overflow-hidden z-30"
       >
         <div className={`flex flex-col h-full w-[280px] transition-opacity duration-300 ${
           sidebarOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
@@ -597,25 +800,13 @@ export default function ChatPage() {
       </motion.aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
+        sidebarOpen ? "lg:ml-[280px]" : ""
+      }`}>
         {/* Header */}
         <div className="border-b border-white/10 bg-gray-900/40 backdrop-blur-sm">
           <div className="px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {/* Toggle sidebar button - visible on all screens */}
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 rounded-lg hover:bg-white/10 transition"
-                aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-              >
-                {sidebarOpen ? (
-                  <X className="w-5 h-5" />
-                ) : (
-                  <Menu className="w-5 h-5" />
-                )}
-              </motion.button>
               <Bot className="w-6 h-6 text-violet-400" />
               <div>
                 <h1 className="text-lg font-semibold">Chat: {topic}</h1>
@@ -670,7 +861,15 @@ export default function ChatPage() {
                     }`}
                   >
                     <p className="whitespace-pre-wrap break-words">
-                      {message.content}
+                      {message.role === "bot" ? (
+                        <TypewriterMessage
+                          text={message.content}
+                          messageId={message.id}
+                          isNew={newBotMessages.has(message.id)}
+                        />
+                      ) : (
+                        message.content
+                      )}
                     </p>
                     {message.created_at && (
                       <p className="text-xs mt-2 opacity-60">

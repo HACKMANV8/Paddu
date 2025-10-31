@@ -24,7 +24,7 @@ func main() {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept", "X-Gemini-Api-Key", "X-Google-Api-Key", "X-Api-Key", "X-Gemini-Model"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
@@ -50,11 +50,27 @@ func main() {
 		}
 	}
 
+	// Register API routes
 	routes.RegisterRoutes(r)
 
+	// Test endpoint to verify server is running
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "hello guys",
+		})
+	})
+
+	// Test endpoint for chat routes debugging
+	r.GET("/test-chat-routes", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Chat routes are registered",
+			"routes": []string{
+				"POST /api/chat/start",
+				"POST /api/chat/send",
+				"GET /api/chat/user/:user_id",
+				"DELETE /api/chat/:id",
+				"GET /api/chat/:id",
+			},
 		})
 	})
 	r.POST("/signup", handlers.SignUp)

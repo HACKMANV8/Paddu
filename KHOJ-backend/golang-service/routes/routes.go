@@ -1,16 +1,22 @@
 package routes
 
-import(
-	"github.com/gin-gonic/gin"
+import (
 	"golang-service/handlers"
-)
 
+	"github.com/gin-gonic/gin"
+)
 
 func RegisterRoutes(r *gin.Engine) {
 	api := r.Group("/api")
 	{
-		api.POST("/chat/start", handlers.StartChat)
-		api.POST("/chat/send", handlers.SendMessage)
-		api.GET("/chat/:id", handlers.GetChatHistory)
+		chat := api.Group("/chat")
+		{
+			chat.POST("/start", handlers.StartChat)
+			chat.POST("/send", handlers.SendMessage)
+			// More specific route must come before the general one
+			chat.GET("/user/:user_id", handlers.GetUserChats)
+			chat.DELETE("/:id", handlers.DeleteChat)
+			chat.GET("/:id", handlers.GetChatHistory)
+		}
 	}
 }

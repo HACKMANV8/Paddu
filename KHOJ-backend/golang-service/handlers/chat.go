@@ -2,6 +2,7 @@ package handlers
 
 import (
     "context"
+    "database/sql"
     "fmt"
     "net/http"
     "strings"
@@ -27,20 +28,32 @@ func StartChat(c *gin.Context) {
 	}
 
 	// Check if user already has chat on this topic
-	var exists bool
-	err := config.DB.Get(&exists,
-		"SELECT EXISTS (SELECT 1 FROM chats WHERE user_id=$1 AND topic=$2)",
+	var existingChat models.Chat
+	err := config.DB.Get(&existingChat,
+		"SELECT * FROM chats WHERE user_id=$1 AND topic=$2",
 		body.UserID, body.Topic)
-	if err != nil {
+	
+	// If chat exists, return the existing chat_id instead of error
+	if err == nil {
+		// Update the updated_at timestamp
+		_, updateErr := config.DB.Exec(
+			"UPDATE chats SET updated_at=$1 WHERE id=$2",
+			time.Now(), existingChat.ID)
+		if updateErr != nil {
+			// Log but don't fail - we still return the chat
+			fmt.Printf("Warning: failed to update chat timestamp: %v\n", updateErr)
+		}
+		c.JSON(http.StatusOK, gin.H{"chat_id": existingChat.ID, "existing": true})
+		return
+	}
+	
+	// If error is not "no rows", it's a real database error
+	if err != nil && err != sql.ErrNoRows {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	if exists {
-		c.JSON(http.StatusConflict, gin.H{"error": "Chat for this topic already exists"})
-		return
-	}
-
+	// Create new chat
 	chatID := uuid.New().String()
 	now := time.Now()
 
@@ -54,7 +67,7 @@ func StartChat(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"chat_id": chatID})
+	c.JSON(http.StatusOK, gin.H{"chat_id": chatID, "existing": false})
 }
 
 // 🧩 Send a message and get a bot reply
@@ -142,6 +155,77 @@ func GetChatHistory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, messages)
+}
+
+// 🧩 Get all chats for a user
+func GetUserChats(c *gin.Context) {
+	userIDStr := c.Param("user_id")
+	var userID int
+	
+	// Convert user_id param to int
+	_, err := fmt.Sscanf(userIDStr, "%d", &userID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user_id"})
+		return
+	}
+	
+	var chats []models.Chat
+	err = config.DB.Select(&chats, "SELECT * FROM chats WHERE user_id=$1 ORDER BY updated_at DESC", userID)
+	if err != nil {
+		fmt.Printf("Error fetching chats for user %d: %v\n", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Log for debugging
+	fmt.Printf("Found %d chats for user %d\n", len(chats), userID)
+	
+	c.JSON(http.StatusOK, chats)
+}
+
+// 🧩 Delete a chat
+func DeleteChat(c *gin.Context) {
+	chatID := c.Param("id")
+	var body struct {
+		UserID int `json:"user_id"`
+	}
+
+	fmt.Printf("DeleteChat: Received request for chat_id=%s\n", chatID)
+
+	if err := c.BindJSON(&body); err != nil {
+		fmt.Printf("DeleteChat: Failed to parse body: %v\n", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	fmt.Printf("DeleteChat: Parsed user_id=%d, chat_id=%s\n", body.UserID, chatID)
+
+	// Verify chat exists and belongs to user
+	var chat models.Chat
+	err := config.DB.Get(&chat, "SELECT * FROM chats WHERE id=$1 AND user_id=$2", chatID, body.UserID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			fmt.Printf("DeleteChat: Chat not found - chat_id=%s, user_id=%d\n", chatID, body.UserID)
+			c.JSON(http.StatusNotFound, gin.H{"error": "Chat not found or unauthorized"})
+		} else {
+			fmt.Printf("DeleteChat: Database error: %v\n", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	fmt.Printf("DeleteChat: Chat found, proceeding with deletion - chat_id=%s, user_id=%d\n", chatID, body.UserID)
+
+	// Delete chat (messages will be deleted via CASCADE)
+	_, err = config.DB.Exec("DELETE FROM chats WHERE id=$1 AND user_id=$2", chatID, body.UserID)
+	if err != nil {
+		fmt.Printf("Error deleting chat %s: %v\n", chatID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	fmt.Printf("Deleted chat %s for user %d\n", chatID, body.UserID)
+	c.JSON(http.StatusOK, gin.H{"message": "Chat deleted successfully"})
 }
 
 // Gemini integration moved to services/gemini.go
