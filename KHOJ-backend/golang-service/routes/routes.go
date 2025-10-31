@@ -18,13 +18,13 @@ func RegisterRoutes(r *gin.Engine) {
 			chat.DELETE("/:id", handlers.DeleteChat)
 			chat.GET("/:id", handlers.GetChatHistory)
 		}
-		
+
 		// Schedule endpoints
 		api.POST("/schedule", handlers.CreateSchedule)
 		api.GET("/schedule/:user_id", handlers.GetUserSchedules)
 		api.GET("/schedule/due", handlers.GetDueSchedules) // For n8n/cron
 		api.DELETE("/schedule/:id", handlers.CancelSchedule)
-		
+
 		// Quiz endpoints
 		api.POST("/quiz/reminder", handlers.TriggerQuizReminder) // Webhook for n8n
 		api.POST("/quiz/start", handlers.StartQuiz)
