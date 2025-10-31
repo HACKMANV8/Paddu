@@ -1,6 +1,7 @@
 package handlers
 
 import (
+    "context"
     "fmt"
     "net/http"
     "strings"
@@ -10,6 +11,7 @@ import (
     "github.com/google/uuid"
     "golang-service/config"
     "golang-service/models"
+    "golang-service/services"
 )
 
 // 🧩 Start a new chat
@@ -96,8 +98,22 @@ func SendMessage(c *gin.Context) {
         return
     }
 
-    // Generate bot reply (for now static)
-    botReply := generateBotReply(body.Message)
+	// Resolve API key: request headers override env
+    apiKey := services.ResolveGeminiAPIKeyFromRequest(c)
+	if apiKey == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "GEMINI_API_KEY not set"})
+		return
+	}
+
+    // Allow caller to specify a model; else service will fall back
+    preferredModel := strings.TrimSpace(c.GetHeader("X-Gemini-Model"))
+
+    // Generate bot reply from Gemini
+    botReply, err := services.GenerateGeminiReply(context.Background(), apiKey, preferredModel, chat.Topic, body.Message)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+        return
+    }
 
     botMsgID := uuid.New().String()
     _, err = config.DB.Exec(`
@@ -128,9 +144,7 @@ func GetChatHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, messages)
 }
 
-func generateBotReply(input string) string {
-	return "Bot reply to: " + input
-}
+// Gemini integration moved to services/gemini.go
 
 // isMessageOnTopic performs a simple check to see if the message mentions the chat topic.
 func isMessageOnTopic(message string, topic string) bool {
@@ -139,5 +153,43 @@ func isMessageOnTopic(message string, topic string) bool {
     if t == "" {
         return true
     }
-    return strings.Contains(m, t)
+
+    // Direct mention of the topic passes
+    if strings.Contains(m, t) {
+        return true
+    }
+
+    // Topic hierarchy and synonyms (minimal, can be expanded or moved to DB later)
+    subtopicToCategory := map[string]string{
+        "algebra":      "math",
+        "geometry":     "math",
+        "trigonometry": "math",
+        "calculus":     "math",
+        "integration":  "math",
+        "differentiation": "math",
+        "probability":  "math",
+        "statistics":   "math",
+    }
+
+    categoryKeywords := map[string][]string{
+        "math": {
+            "math", "mathematics", "algebra", "geometry", "trigonometry",
+            "calculus", "integration", "integral", "derivative", "differentiation",
+            "probability", "statistics", "equation", "function",
+        },
+    }
+
+    // Resolve allowed keywords: include the topic itself and, if it belongs to a category, include category terms
+    allowed := []string{t}
+    if cat, ok := subtopicToCategory[t]; ok {
+        allowed = append(allowed, categoryKeywords[cat]...)
+    }
+
+    for _, kw := range allowed {
+        if kw != "" && strings.Contains(m, kw) {
+            return true
+        }
+    }
+
+    return false
 }
