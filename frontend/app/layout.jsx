@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Permanent_Marker, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -6,9 +6,20 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+const permanentMarker = Permanent_Marker({
+  subsets: ["latin"],
+  weight: "400",
+});
+
+
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const bricolageGrotesque = Bricolage_Grotesque({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"], // choose what you need
 });
 
 export const metadata = {
@@ -20,7 +31,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${permanentMarker.variable} ${bricolageGrotesque.variable}antialiased`}
       >
         {children}
       </body>
