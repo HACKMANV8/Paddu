@@ -1,14 +1,17 @@
 "use client";
 import React from "react";
 import OnboardingFlow from "../../components/OnboardingFlow";
+import { useRouter } from "next/navigation";
 
 export default function OnboardingPage() {
-	function handleComplete(formData) {
-		// Replace with navigation or API call after onboarding if needed
-		console.log("Onboarding complete:", formData);
-	}
+  const router = useRouter();
 
-	return <OnboardingFlow onComplete={handleComplete} />;
+  function handleComplete(formData) {
+    console.log("Onboarding complete:", formData);
+
+    // 👇 Navigate to the chat page
+    router.push("/chat");
+  }
+
+  return <OnboardingFlow onComplete={handleComplete} />;
 }
-
-
