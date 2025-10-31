@@ -75,7 +75,7 @@ export default function OnboardingFlow({ onComplete }) {
 					value={value}
 					onChange={(e) => onChange(e.target.value)}
 					placeholder="e.g., evenings 6–7"
-					className="w-full rounded-lg bg-white/5 focus:bg-white/10 text-white placeholder-white/40 border border-white/10 focus:border-fuchsia-400/60 outline-none px-4 py-3 transition"
+					className="w-full rounded-lg bg-white/5 focus:bg-white/10 text-white placeholder-white/40 border border-white/10 focus:border-violet-400/60 outline-none px-4 py-3 transition"
 				/>
 			),
 		},
@@ -86,7 +86,7 @@ export default function OnboardingFlow({ onComplete }) {
 				<select
 					value={value}
 					onChange={(e) => onChange(e.target.value)}
-					className="w-full rounded-lg bg-white/5 focus:bg-white/10 text-white border border-white/10 focus:border-fuchsia-400/60 outline-none px-4 py-3 transition"
+					className="w-full rounded-lg bg-white/5 focus:bg-white/10 text-white border border-white/10 focus:border-violet-400/60 outline-none px-4 py-3 transition"
 				>
 					<option value="" className="bg-slate-900">Select one</option>
 					<option value="Daily" className="bg-slate-900">Daily</option>
@@ -139,8 +139,8 @@ export default function OnboardingFlow({ onComplete }) {
 
 	return (
 		<div className="min-h-screen w-full bg-gradient-to-br from-[#0a0014] to-[#1a0033] text-white flex items-center justify-center p-4 relative overflow-hidden">
-			<div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-fuchsia-600/20 blur-3xl" />
-			<div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-indigo-600/20 blur-3xl" />
+			<div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-violet-600/20 blur-3xl" />
+			<div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-neutral-600/20 blur-3xl" />
 
 			<div className="w-full max-w-lg">
 				<AnimatePresence mode="wait" initial={false}>
@@ -166,10 +166,10 @@ export default function OnboardingFlow({ onComplete }) {
 							<button
 								onClick={handleBack}
 								disabled={stepIndex === 0}
-								className={`px-4 py-2 rounded-lg text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fuchsia-400/70 focus:ring-offset-white/0 disabled:opacity-40 disabled:cursor-not-allowed ${
+								className={`px-4 py-2 rounded-lg text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-400/70 focus:ring-offset-white/0 disabled:opacity-40 disabled:cursor-not-allowed ${
 									stepIndex === 0
 										? 'bg-white/10 text-white/70 border border-white/10'
-										: 'bg-gradient-to-r from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white border border-white/10 shadow-[0_0_20px_-6px_rgba(255,255,255,0.4)]'
+										: 'bg-black-to-r from-white/10 to-white/5 hover:from-white/20 hover:to-white/10 text-white border border-white/10 shadow-[0_0_20px_-6px_rgba(255,255,255,0.4)]'
 								}`}
 							>
 								← Back
@@ -178,7 +178,7 @@ export default function OnboardingFlow({ onComplete }) {
 							<button
 								onClick={handleNext}
 								disabled={!canProceed}
-								className={`px-4 py-2 rounded-lg text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-fuchsia-400/70 focus:ring-offset-white/0 disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-fuchsia-600 via-pink-600 to-indigo-600 hover:shadow-[0_0_24px_-4px_rgba(217,70,239,0.8)]`}
+								className={`px-4 py-2 rounded-lg text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-400/70 focus:ring-offset-white/0 disabled:opacity-40 disabled:cursor-not-allowed bg-linear-to-r from-violet-700 via-violet-600 to-indigo-600 hover:shadow-[0_0_24px_-4px_rgba(217,70,239,0.8)]`}
 							>
 								{stepIndex === totalSteps - 1 ? 'Finish →' : 'Next →'}
 							</button>
