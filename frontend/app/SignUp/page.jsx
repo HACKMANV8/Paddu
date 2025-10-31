@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import { Bricolage_Grotesque } from "next/font/google";
+import { useRouter } from "next/navigation";
 
 const bricolageGrotesque = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -8,6 +9,14 @@ const bricolageGrotesque = Bricolage_Grotesque({
 });
 
 export default function SignUp() {
+  const router = useRouter();
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    // TODO: Replace with real signup API; on success, redirect to onboarding
+    router.push("/onboarding");
+  }
+
   return (
     <div className= {`${bricolageGrotesque.className} min-h-screen flex items-center justify-center bg-black text-white`}>
       {/* Outer container */}
@@ -26,7 +35,7 @@ export default function SignUp() {
             Sign-Up
           </h2>
 
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Name */}
             <div>
               <label className="block text-sm text-gray-300 mb-2">Name</label>
@@ -63,6 +72,7 @@ export default function SignUp() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.97 }}
+              type="submit"
               className="relative w-full py-3 mt-4 font-semibold rounded-full overflow-hidden"
             >
               <div className="absolute inset-0 bg-violet-900"></div>
