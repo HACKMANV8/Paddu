@@ -9,12 +9,15 @@ import (
 	//"golang-service/middleware"
 
 	"github.com/gin-gonic/gin"
+	"golang-service/routes"
 	// "github.com/gin-contrib/cors"
 )
 
 func main(){
        config.ConnectDatabase()
 	r:=gin.Default()
+
+	routes.RegisterRoutes(r)
 
 	r.GET("/ping",func(c *gin.Context){
 		c.JSON(http.StatusOK,gin.H{
