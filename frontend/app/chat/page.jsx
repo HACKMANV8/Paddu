@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Bot, User, Sparkles, LayoutGrid, MessageSquare, Menu, X, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Send, Bot, User, Sparkles, LayoutGrid, MessageSquare, Menu, X, Trash2, ChevronLeft, ChevronRight, Bell, GraduationCap } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 // Simple typewriter effect for AI messages - like ChatGPT/Gemini
@@ -96,6 +96,13 @@ export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [newBotMessages, setNewBotMessages] = useState(new Set());
   const [showNewChatForm, setShowNewChatForm] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [reminderDateTime, setReminderDateTime] = useState("");
+  const [recurrenceType, setRecurrenceType] = useState("daily"); // "daily", "weekly", "once"
+  const [reminderTime, setReminderTime] = useState("");
+  const [reminderTimeEnd, setReminderTimeEnd] = useState("");
+  const [selectedDays, setSelectedDays] = useState([]); // For weekly: [1,3,5] for Mon,Wed,Fri
+  const [creatingReminder, setCreatingReminder] = useState(false);
 
   useEffect(() => {
     // Set sidebar open by default on desktop, closed on mobile
@@ -464,6 +471,118 @@ export default function ChatPage() {
     }
   };
 
+  const createReminder = async () => {
+    if (!chatId || !userId) {
+      setError("Missing required information");
+      return;
+    }
+
+    // Validate based on recurrence type
+    if (recurrenceType === "once") {
+      if (!reminderDateTime) {
+        setError("Please select a date and time for the reminder");
+        return;
+      }
+    } else {
+      if (!reminderTime) {
+        setError("Please select a reminder time");
+        return;
+      }
+      if (recurrenceType === "weekly" && selectedDays.length === 0) {
+        setError("Please select at least one day of the week");
+        return;
+      }
+    }
+
+    setCreatingReminder(true);
+    setError("");
+
+    try {
+      const requestBody = {
+        user_id: userId,
+        chat_id: chatId,
+        recurrence_type: recurrenceType,
+      };
+
+      if (recurrenceType === "once") {
+        // Convert local datetime to ISO 8601 format
+        const dateTime = new Date(reminderDateTime);
+        requestBody.scheduled_time = dateTime.toISOString();
+        requestBody.reminder_time = dateTime.toTimeString().slice(0, 5); // HH:MM format
+      } else {
+        requestBody.reminder_time = reminderTime;
+        if (reminderTimeEnd) {
+          requestBody.reminder_time_end = reminderTimeEnd;
+        }
+        if (recurrenceType === "weekly") {
+          requestBody.days_of_week = selectedDays.sort((a, b) => a - b).join(",");
+        }
+      }
+
+      const res = await fetch(`${apiBaseUrl}/api/schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to create reminder");
+      }
+
+      // Success - close modal and show success message
+      setShowReminderModal(false);
+      setReminderDateTime("");
+      setReminderTime("");
+      setReminderTimeEnd("");
+      setSelectedDays([]);
+      setRecurrenceType("daily");
+      setError("");
+      alert("Reminder created successfully!");
+    } catch (err) {
+      setError(err.message || "Failed to create reminder");
+    } finally {
+      setCreatingReminder(false);
+    }
+  };
+
+  const startQuiz = async () => {
+    if (!chatId || !userId || !topic) {
+      setError("Cannot start quiz: missing chat information");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/quiz/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          chat_id: chatId,
+          topic: topic,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (res.status === 409) {
+          alert("Quiz already in progress for this chat!");
+        } else {
+          throw new Error(data?.error || "Failed to start quiz");
+        }
+        return;
+      }
+
+      // Quiz started successfully - reload chat history to see the quiz question
+      await loadChatHistory(chatId);
+      alert("Quiz started! Check the chat for the first question.");
+    } catch (err) {
+      setError(err.message || "Failed to start quiz");
+    }
+  };
+
   // Show loading state while checking for chats
   if (!chatId && loadingChats) {
     return (
@@ -667,6 +786,221 @@ export default function ChatPage() {
           </motion.div>
         </>
       )}
+
+      {/* Reminder Modal Overlay */}
+      {showReminderModal && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              setShowReminderModal(false);
+              setReminderDateTime("");
+              setReminderTime("");
+              setReminderTimeEnd("");
+              setSelectedDays([]);
+              setRecurrenceType("daily");
+              setError("");
+            }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 40 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative bg-gray-900/90 backdrop-blur-lg rounded-2xl shadow-[0_0_40px_rgba(0,0,0)] p-10 w-full max-w-md border border-white/10">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-900 to-neutral-600 rounded-2xl opacity-20 blur-lg"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <Bell className="w-8 h-8 text-violet-400" />
+                    <h2 className="text-2xl font-extrabold bg-gradient-to-r from-violet-50 to-violet-100 bg-clip-text text-transparent">
+                      Set Reminder
+                    </h2>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowReminderModal(false);
+                      setReminderDateTime("");
+                      setError("");
+                    }}
+                    className="p-2 rounded-lg hover:bg-white/10 transition text-gray-400 hover:text-white"
+                    aria-label="Close"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <p className="text-center text-gray-400 mb-6 text-sm">
+                  Schedule a reminder for this chat about "{topic}"
+                </p>
+
+                <div className="space-y-4">
+                  {/* Recurrence Type Selection */}
+                  <div>
+                    <label className="block text-sm text-gray-300 mb-3">Reminder Frequency</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {["daily", "weekly", "once"].map((type) => (
+                        <motion.button
+                          key={type}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => {
+                            setRecurrenceType(type);
+                            if (type !== "once") {
+                              setReminderDateTime("");
+                            }
+                          }}
+                          className={`px-3 py-2 rounded-lg border transition ${
+                            recurrenceType === type
+                              ? "bg-violet-700/30 border-violet-500 text-white"
+                              : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10"
+                          }`}
+                          disabled={creatingReminder}
+                        >
+                          <span className="text-xs font-medium capitalize">{type}</span>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Once - Date & Time Picker */}
+                  {recurrenceType === "once" && (
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">Date & Time</label>
+                      <input
+                        type="datetime-local"
+                        value={reminderDateTime}
+                        onChange={(e) => setReminderDateTime(e.target.value)}
+                        min={new Date().toISOString().slice(0, 16)}
+                        className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 text-gray-100 placeholder-gray-500"
+                        disabled={creatingReminder}
+                        required
+                      />
+                    </div>
+                  )}
+
+                  {/* Daily/Weekly - Time Picker */}
+                  {recurrenceType !== "once" && (
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">Reminder Time</label>
+                      <div className="flex gap-3">
+                        <input
+                          type="time"
+                          value={reminderTime}
+                          onChange={(e) => setReminderTime(e.target.value)}
+                          className="flex-1 px-4 py-3 rounded-xl bg-black/40 border border-white/10 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 text-gray-100"
+                          disabled={creatingReminder}
+                          required
+                        />
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-400 text-sm">to</span>
+                          <input
+                            type="time"
+                            value={reminderTimeEnd}
+                            onChange={(e) => setReminderTimeEnd(e.target.value)}
+                            className="flex-1 px-4 py-3 rounded-xl bg-black/40 border border-white/10 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 text-gray-100"
+                            disabled={creatingReminder}
+                            placeholder="Optional"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {reminderTimeEnd ? "Reminders will be sent within this time range" : "Reminders will be sent at this time"}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Weekly - Days Selection */}
+                  {recurrenceType === "weekly" && (
+                    <div>
+                      <label className="block text-sm text-gray-300 mb-2">Days of Week</label>
+                      <div className="grid grid-cols-7 gap-2">
+                        {[
+                          { day: 0, label: "Sun" },
+                          { day: 1, label: "Mon" },
+                          { day: 2, label: "Tue" },
+                          { day: 3, label: "Wed" },
+                          { day: 4, label: "Thu" },
+                          { day: 5, label: "Fri" },
+                          { day: 6, label: "Sat" },
+                        ].map(({ day, label }) => (
+                          <motion.button
+                            key={day}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            type="button"
+                            onClick={() => {
+                              if (selectedDays.includes(day)) {
+                                setSelectedDays(selectedDays.filter((d) => d !== day));
+                              } else {
+                                setSelectedDays([...selectedDays, day]);
+                              }
+                            }}
+                            className={`px-2 py-2 rounded-lg border text-xs font-medium transition ${
+                              selectedDays.includes(day)
+                                ? "bg-violet-700/30 border-violet-500 text-white"
+                                : "bg-white/5 border-white/10 text-gray-300 hover:bg-white/10"
+                            }`}
+                            disabled={creatingReminder}
+                          >
+                            {label}
+                          </motion.button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {error && (
+                    <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                      {error}
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setShowReminderModal(false);
+                        setReminderDateTime("");
+                        setReminderTime("");
+                        setReminderTimeEnd("");
+                        setSelectedDays([]);
+                        setRecurrenceType("daily");
+                        setError("");
+                      }}
+                      disabled={creatingReminder}
+                      className="flex-1 px-4 py-3 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-sm transition disabled:opacity-50"
+                    >
+                      Cancel
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={createReminder}
+                      disabled={
+                        creatingReminder ||
+                        (recurrenceType === "once" && !reminderDateTime) ||
+                        (recurrenceType !== "once" && !reminderTime) ||
+                        (recurrenceType === "weekly" && selectedDays.length === 0)
+                      }
+                      className="flex-1 px-4 py-3 rounded-lg bg-gradient-to-r from-violet-700 via-violet-600 to-indigo-600 hover:shadow-[0_0_24px_-4px_rgba(217,70,239,0.8)] font-semibold disabled:opacity-60 disabled:cursor-not-allowed transition"
+                    >
+                      {creatingReminder ? "Creating..." : "Create Reminder"}
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
       
       {/* Sidebar */}
       <motion.aside
@@ -691,10 +1025,22 @@ export default function ChatPage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => router.push("/Dashboard")}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-violet-700/20 hover:bg-violet-700/30 border border-violet-500/20 text-white transition mb-4"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-violet-700/20 hover:bg-violet-700/30 border border-violet-500/20 text-white transition mb-3"
             >
               <LayoutGrid className="w-5 h-5" />
               <span className="font-medium">Dashboard</span>
+            </motion.button>
+            
+            {/* Quiz Button */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => router.push("/quiz")}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-violet-700/20 hover:bg-violet-700/30 border border-violet-500/20 text-white transition mb-4"
+              title="View all topics and quizzes"
+            >
+              <GraduationCap className="w-5 h-5" />
+              <span className="font-medium">Quiz</span>
             </motion.button>
           </div>
 
@@ -813,14 +1159,30 @@ export default function ChatPage() {
                 <p className="text-xs text-gray-400">AI Tutor Assistant</p>
               </div>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={startNewChat}
-              className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-sm transition"
-            >
-              New Chat
-            </motion.button>
+            <div className="flex items-center gap-2">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setShowReminderModal(true);
+                  setError("");
+                }}
+                disabled={!chatId}
+                className="px-4 py-2 rounded-lg bg-violet-700/20 hover:bg-violet-700/30 border border-violet-500/20 text-sm transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                title="Set Reminder"
+              >
+                <Bell className="w-4 h-4" />
+                Reminder
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={startNewChat}
+                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-sm transition"
+              >
+                New Chat
+              </motion.button>
+            </div>
           </div>
         </div>
 

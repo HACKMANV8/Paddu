@@ -3,19 +3,25 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"golang-service/config"
 	"golang-service/models"
+
+	"github.com/gin-gonic/gin"
 )
 
 // CreateSchedule creates a quiz reminder schedule from the current chat
 func CreateSchedule(c *gin.Context) {
 	var body struct {
-		UserID        int    `json:"user_id" binding:"required"`
-		ChatID        string `json:"chat_id" binding:"required"`
-		ScheduledTime string `json:"scheduled_time" binding:"required"` // ISO 8601 format: "2025-10-31T14:30:00Z"
+		UserID          int    `json:"user_id" binding:"required"`
+		ChatID          string `json:"chat_id" binding:"required"`
+		ScheduledTime   string `json:"scheduled_time,omitempty"`           // ISO 8601 format for one-time reminders
+		RecurrenceType  string `json:"recurrence_type" binding:"required"` // "daily", "weekly", "once"
+		ReminderTime    string `json:"reminder_time" binding:"required"`   // Time of day "HH:MM" or "HH:MM-HH:MM" for range
+		ReminderTimeEnd string `json:"reminder_time_end,omitempty"`        // Optional end time for ranges
+		DaysOfWeek      string `json:"days_of_week,omitempty"`             // Comma-separated: "1,3,5" for Mon,Wed,Fri
 	}
 
 	if err := c.BindJSON(&body); err != nil {
@@ -31,42 +37,142 @@ func CreateSchedule(c *gin.Context) {
 		return
 	}
 
-	// Parse scheduled time
-	scheduledTime, err := time.Parse(time.RFC3339, body.ScheduledTime)
-	if err != nil {
-		// Try simpler format
-		scheduledTime, err = time.Parse("2006-01-02T15:04:05", body.ScheduledTime)
+	var scheduledTime time.Time
+	var nextScheduledTime time.Time
+	now := time.Now()
+
+	// Calculate next scheduled time based on recurrence type
+	if body.RecurrenceType == "once" {
+		// One-time reminder - use provided scheduled_time
+		var err error
+		scheduledTime, err = time.Parse(time.RFC3339, body.ScheduledTime)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid time format. Use ISO 8601 (e.g., 2025-10-31T14:30:00Z)"})
+			// Try simpler format
+			scheduledTime, err = time.Parse("2006-01-02T15:04:05", body.ScheduledTime)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid time format. Use ISO 8601 (e.g., 2025-10-31T14:30:00Z)"})
+				return
+			}
+		}
+		nextScheduledTime = scheduledTime
+	} else {
+		// Recurring reminder - calculate next occurrence
+		// Parse reminder time (HH:MM)
+		t, err := time.Parse("15:04", body.ReminderTime)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid reminder time format. Use HH:MM (e.g., 14:30)"})
 			return
 		}
+
+		// Get hour and minute
+		reminderHour := t.Hour()
+		reminderMinute := t.Minute()
+
+		today := time.Date(now.Year(), now.Month(), now.Day(), reminderHour, reminderMinute, 0, 0, now.Location())
+
+		if body.RecurrenceType == "daily" {
+			// Daily - if time today has passed, schedule for tomorrow
+			if today.After(now) || today.Equal(now) {
+				nextScheduledTime = today
+			} else {
+				nextScheduledTime = today.AddDate(0, 0, 1)
+			}
+		} else if body.RecurrenceType == "weekly" {
+			// Weekly - find next matching day of week
+			if body.DaysOfWeek == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "days_of_week required for weekly reminders"})
+				return
+			}
+			nextScheduledTime = calculateNextWeeklyReminder(now, body.DaysOfWeek, reminderHour, reminderMinute)
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid recurrence_type. Use 'daily', 'weekly', or 'once'"})
+			return
+		}
+		scheduledTime = nextScheduledTime // For compatibility
 	}
 
 	// Check if time is in the future
-	if scheduledTime.Before(time.Now()) {
+	if nextScheduledTime.Before(now) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Scheduled time must be in the future"})
 		return
 	}
 
-	// Insert schedule
+	// Insert schedule - try with new fields, fallback to old schema if needed
 	var scheduleID int
 	err = config.DB.QueryRow(`
-		INSERT INTO schedules (user_id, chat_id, topic, scheduled_time, active, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO schedules (user_id, chat_id, topic, scheduled_time, active, created_at, recurrence_type, reminder_time, reminder_time_end, days_of_week)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id
-	`, body.UserID, body.ChatID, chat.Topic, scheduledTime, true, time.Now()).Scan(&scheduleID)
+	`, body.UserID, body.ChatID, chat.Topic, nextScheduledTime, true, time.Now(), body.RecurrenceType, body.ReminderTime, body.ReminderTimeEnd, body.DaysOfWeek).Scan(&scheduleID)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create schedule: " + err.Error()})
-		return
+		// Fallback to old schema if new columns don't exist
+		err = config.DB.QueryRow(`
+			INSERT INTO schedules (user_id, chat_id, topic, scheduled_time, active, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6)
+			RETURNING id
+		`, body.UserID, body.ChatID, chat.Topic, nextScheduledTime, true, time.Now()).Scan(&scheduleID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create schedule: " + err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":     "Schedule created successfully",
-		"schedule_id": scheduleID,
-		"topic":       chat.Topic,
-		"scheduled_time": scheduledTime.Format(time.RFC3339),
+		"message":         "Reminder created successfully",
+		"schedule_id":     scheduleID,
+		"topic":           chat.Topic,
+		"recurrence_type": body.RecurrenceType,
+		"reminder_time":   body.ReminderTime,
+		"next_reminder":   nextScheduledTime.Format(time.RFC3339),
 	})
+}
+
+// calculateNextWeeklyReminder finds the next occurrence for weekly reminders
+func calculateNextWeeklyReminder(now time.Time, daysOfWeek string, hour, minute int) time.Time {
+	// Parse days of week (0=Sunday, 1=Monday, etc.)
+	var days []int
+	// Simple parsing - assumes comma-separated integers
+	for _, dayStr := range strings.Split(daysOfWeek, ",") {
+		var day int
+		fmt.Sscanf(strings.TrimSpace(dayStr), "%d", &day)
+		if day >= 0 && day <= 6 {
+			days = append(days, day)
+		}
+	}
+
+	if len(days) == 0 {
+		return now.AddDate(0, 0, 1) // Default to tomorrow if invalid
+	}
+
+	currentWeekday := int(now.Weekday()) // 0=Sunday, 1=Monday, etc.
+
+	// Find next matching day this week
+	for _, day := range days {
+		daysUntil := (day - currentWeekday + 7) % 7
+		if daysUntil == 0 {
+			// Today - check if time has passed
+			today := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, 0, 0, now.Location())
+			if today.After(now) || today.Equal(now) {
+				return today
+			}
+			// Time passed, check next week
+			daysUntil = 7
+		}
+		if daysUntil > 0 {
+			nextDate := now.AddDate(0, 0, daysUntil)
+			return time.Date(nextDate.Year(), nextDate.Month(), nextDate.Day(), hour, minute, 0, 0, now.Location())
+		}
+	}
+
+	// If no match found this week, use first day of next week
+	firstDay := days[0]
+	daysUntil := (firstDay - currentWeekday + 7) % 7
+	if daysUntil == 0 {
+		daysUntil = 7
+	}
+	nextDate := now.AddDate(0, 0, daysUntil)
+	return time.Date(nextDate.Year(), nextDate.Month(), nextDate.Day(), hour, minute, 0, 0, now.Location())
 }
 
 // GetUserSchedules returns all active schedules for a user
@@ -143,4 +249,3 @@ func parseInt(s string) int {
 	fmt.Sscanf(s, "%d", &n)
 	return n
 }
-

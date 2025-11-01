@@ -15,13 +15,14 @@ type Quiz struct {
 }
 
 type QuizQuestion struct {
-	ID       int    `db:"id" json:"id"`
-	QuizID   int    `db:"quiz_id" json:"quiz_id"`
-	Question string `db:"question" json:"question"`
-	Answer   string `db:"answer" json:"answer"`
-	UserAnswer string `db:"user_answer" json:"user_answer,omitempty"`
-	IsCorrect bool   `db:"is_correct" json:"is_correct,omitempty"`
-	OrderNum int    `db:"order_num" json:"order_num"`
+	ID         int      `db:"id" json:"id"`
+	QuizID     int      `db:"quiz_id" json:"quiz_id"`
+	Question   string   `db:"question" json:"question"`
+	Answer     string   `db:"answer" json:"answer"` // Correct answer option (e.g., "A", "B", "C", "D")
+	Options    string   `db:"options" json:"options,omitempty"` // JSON array of options ["option1", "option2", ...]
+	UserAnswer string   `db:"user_answer" json:"user_answer,omitempty"`
+	IsCorrect  bool     `db:"is_correct" json:"is_correct,omitempty"`
+	OrderNum   int      `db:"order_num" json:"order_num"`
 }
 
 

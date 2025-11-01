@@ -25,9 +25,11 @@ func RegisterRoutes(r *gin.Engine) {
 		api.GET("/schedule/due", handlers.GetDueSchedules) // For n8n/cron
 		api.DELETE("/schedule/:id", handlers.CancelSchedule)
 
-		// Quiz endpoints
+		// Quiz endpoints (specific routes first)
 		api.POST("/quiz/reminder", handlers.TriggerQuizReminder) // Webhook for n8n
 		api.POST("/quiz/start", handlers.StartQuiz)
 		api.POST("/quiz/answer", handlers.SubmitQuizAnswer)
+		api.POST("/quiz/submit", handlers.SubmitCompleteQuiz)
+		api.GET("/quiz/:id", handlers.GetQuiz) // Must come after specific routes
 	}
 }

@@ -106,6 +106,7 @@ fmt.Println("✅ Environment variables loaded successfully!")
 		quiz_id INTEGER NOT NULL REFERENCES quizzes(id) ON DELETE CASCADE,
 		question TEXT NOT NULL,
 		answer TEXT NOT NULL,
+		options TEXT,
 		user_answer TEXT,
 		is_correct BOOLEAN,
 		order_num INTEGER NOT NULL
@@ -131,6 +132,24 @@ fmt.Println("✅ Environment variables loaded successfully!")
 	}
 	if _, err := db.Exec(createQuizQuestions); err != nil {
 		log.Fatal("Failed creating quiz_questions table:", err)
+	}
+
+	// Migration: Add options column if it doesn't exist
+	_, err = db.Exec(`
+		DO $$ 
+		BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM information_schema.columns 
+				WHERE table_name = 'quiz_questions' AND column_name = 'options'
+			) THEN
+				ALTER TABLE quiz_questions ADD COLUMN options TEXT;
+			END IF;
+		END $$;
+	`)
+	if err != nil {
+		fmt.Printf("Warning: Failed to add options column (might already exist): %v\n", err)
+	} else {
+		fmt.Println("✅ Added options column to quiz_questions table")
 	}
 
       DB=db
