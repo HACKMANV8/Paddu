@@ -22,9 +22,12 @@ func main() {
 
 	// Enable CORS for local frontend
 	r.Use(cors.New(cors.Config{
+		// Keep explicit list for documentation, but allow via function below
 		AllowOrigins:     []string{"http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"},
+		AllowOriginFunc:  func(origin string) bool { return true },
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Accept", "X-Gemini-Api-Key", "X-Google-Api-Key", "X-Api-Key", "X-Gemini-Model"},
+		// Accept any headers requested by the browser during preflight
+		AllowHeaders:     []string{"*"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
