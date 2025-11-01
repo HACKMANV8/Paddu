@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import OnboardingFlow from "../../components/OnboardingFlow";
+import OnboardingFlow from "../components/OnboardingFlow";
 import { useRouter } from "next/navigation";
 
 export default function OnboardingPage() {
@@ -51,7 +51,8 @@ export default function OnboardingPage() {
     };
 
     try {
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8080";
+      const apiBaseUrl =
+        process.env.NEXT_PUBLIC_API_BASE_URL || "http://127.0.0.1:8080";
       const res = await fetch(`${apiBaseUrl}/userinterest`, {
         method: "POST",
         headers: {

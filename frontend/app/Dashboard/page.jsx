@@ -5,8 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { MessageSquare } from "lucide-react";
-import Resources from "../../components/Resources";
-import ActivityGrid from "../../components/ActivityGrid";
+import Resources from "../components/Resources";
+import ActivityGrid from "../components/ActivityGrid";
 
 export default function Dashboard() {
   const pathname = usePathname();
@@ -29,14 +29,18 @@ export default function Dashboard() {
     // Redirect to landing page (root)
     router.push("/");
   };
-  
+
   return (
     <>
       <Head>
         <title>Dashboard</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin=""
+        />
         <link
           href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&display=swap"
           rel="stylesheet"
@@ -46,7 +50,7 @@ export default function Dashboard() {
           rel="stylesheet"
         />
         <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-      
+
         <style>{`
           .material-symbols-outlined {
             font-variation-settings:
@@ -67,15 +71,13 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3 p-2">
                   <div
                     className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10"
-                   style={{
-  backgroundImage: 'url("/profile-picture.png")',
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
-}}
-
+                    style={{
+                      backgroundImage: 'url("/profile-picture.png")',
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
                   ></div>
                   <div className="flex flex-col">
-                    
                     <h1 className="text-white text-base font-medium leading-normal">
                       {username || "User"}
                     </h1>
@@ -85,64 +87,70 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 mt-4">
-                  <Link 
-                    href="/Dashboard" 
+                  <Link
+                    href="/Dashboard"
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-200 ${
-                      pathname?.toLowerCase() === "/dashboard" 
-                        ? "bg-primary/20 text-primary" 
+                      pathname?.toLowerCase() === "/dashboard"
+                        ? "bg-primary/20 text-primary"
                         : "hover:bg-violet-500/10 text-white"
                     }`}
                   >
-                     <Image
-          src="/layout.png"
-          alt="Dashboard Icon"
-          width={20}
-          height={20}
-          className="object-contain"
-        />
-                    <p className="text-sm font-medium leading-normal">Dashboard</p>
+                    <Image
+                      src="/layout.png"
+                      alt="Dashboard Icon"
+                      width={20}
+                      height={20}
+                      className="object-contain"
+                    />
+                    <p className="text-sm font-medium leading-normal">
+                      Dashboard
+                    </p>
                   </Link>
-                  <Link 
-                    href="/chat" 
+                  <Link
+                    href="/chat"
                     className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-200 ${
-                      pathname === "/chat" 
-                        ? "bg-primary/20 text-primary" 
+                      pathname === "/chat"
+                        ? "bg-primary/20 text-primary"
                         : "hover:bg-violet-500/10 text-white"
                     }`}
                   >
                     <MessageSquare className="w-5 h-5" />
                     <p className="text-sm font-medium leading-normal">Chat</p>
                   </Link>
-                  <Link 
-                    href="#" 
+                  <Link
+                    href="#"
                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-violet-500/10 transition-colors duration-200 text-white"
                   >
-                     <Image
-          src="/people(1).png"
-          alt=" Icon"
-          width={20}
-          height={20}
-          className="object-contain"
-        />
-                    <p className="text-sm font-medium leading-normal">Profile</p>
+                    <Image
+                      src="/people(1).png"
+                      alt=" Icon"
+                      width={20}
+                      height={20}
+                      className="object-contain"
+                    />
+                    <p className="text-sm font-medium leading-normal">
+                      Profile
+                    </p>
                   </Link>
-                  <Link 
-                    href="#" 
+                  <Link
+                    href="#"
                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-violet-500/10 transition-colors duration-200 text-white"
                   >
-                     <Image
-          src="/setting.png"
-          alt=" Icon"
-          width={20}
-          height={20}
-          className="object-contain"
-        />
-                    <p className="text-sm font-medium leading-normal">Settings</p>
+                    <Image
+                      src="/setting.png"
+                      alt=" Icon"
+                      width={20}
+                      height={20}
+                      className="object-contain"
+                    />
+                    <p className="text-sm font-medium leading-normal">
+                      Settings
+                    </p>
                   </Link>
                 </div>
               </div>
               <div className="border-t border-violet-500/10 pt-4">
-                <button 
+                <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-red-900/10 transition-colors duration-200 text-white"
                 >
@@ -179,12 +187,12 @@ export default function Dashboard() {
                   <div className="grid grid-cols-[40px_1fr] gap-x-2">
                     <div className="flex flex-col items-center gap-1 pt-3">
                       <Image
-          src="/people(2).png"
-          alt=" Icon"
-          width={30}
-          height={30}
-          className="object-contain"
-        />
+                        src="/people(2).png"
+                        alt=" Icon"
+                        width={30}
+                        height={30}
+                        className="object-contain"
+                      />
                       <div className="w-[1.5px] bg-primary/30 h-2 grow"></div>
                     </div>
                     <div className="flex flex-1 flex-col py-3 border-b border-white/10">
@@ -199,12 +207,12 @@ export default function Dashboard() {
                     <div className="flex flex-col items-center gap-1">
                       <div className="w-[1.5px] bg-primary/30 h-2"></div>
                       <Image
-          src="/design.png"
-          alt=" Icon"
-          width={30}
-          height={30}
-          className="object-contain"
-        />
+                        src="/design.png"
+                        alt=" Icon"
+                        width={30}
+                        height={30}
+                        className="object-contain"
+                      />
                       <div className="w-[1.5px] bg-primary/30 h-2 grow"></div>
                     </div>
                     <div className="flex flex-1 flex-col py-3 border-b border-white/10">
@@ -218,13 +226,13 @@ export default function Dashboard() {
 
                     <div className="flex flex-col items-center gap-1 pb-3">
                       <div className="w-[1.5px] bg-primary/30 h-2"></div>
-                       <Image
-          src="/bullseye.png"
-          alt=" Icon"
-          width={30}
-          height={30}
-          className="object-contain"
-        />
+                      <Image
+                        src="/bullseye.png"
+                        alt=" Icon"
+                        width={30}
+                        height={30}
+                        className="object-contain"
+                      />
                     </div>
                     <div className="flex flex-1 flex-col py-3">
                       <p className="text-white text-base font-medium leading-normal">
@@ -238,7 +246,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Resources Section */}
-                <Resources/>
+                <Resources />
 
                 {/* Quiz Section */}
                 <div className="bg-white/5 dark:bg-[#141118] rounded-xl p-6">
@@ -246,27 +254,34 @@ export default function Dashboard() {
                     Daily Quiz
                   </h3>
                   <p className="text-gray-200 dark:text-white mb-4">
-                    What is the primary function of the <code>getStaticProps</code> in Next.js?
+                    What is the primary function of the{" "}
+                    <code>getStaticProps</code> in Next.js?
                   </p>
                   <div className="space-y-3">
-                    {["To fetch data at request time.", "To fetch data at build time.", "To handle API routes."].map((text, idx) => (
-                      <label key={idx} className="flex items-center gap-3 p-3 border border-white/10 rounded-lg cursor-pointer hover:border-primary transition-colors has-[:checked]:bg-violet/20 has-[:checked]:border-violet">
+                    {[
+                      "To fetch data at request time.",
+                      "To fetch data at build time.",
+                      "To handle API routes.",
+                    ].map((text, idx) => (
+                      <label
+                        key={idx}
+                        className="flex items-center gap-3 p-3 border border-white/10 rounded-lg cursor-pointer hover:border-primary transition-colors has-[:checked]:bg-violet/20 has-[:checked]:border-violet"
+                      >
                         <input
-  type="radio"
-  name="quiz-option"
-  className="form-radio appearance-none h-4 w-4 border border-violet/20 rounded-full bg-transparent checked:bg-violet-600 checked:border-violet-600 focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-background-dark cursor-pointer"
-/>
+                          type="radio"
+                          name="quiz-option"
+                          className="form-radio appearance-none h-4 w-4 border border-violet/20 rounded-full bg-transparent checked:bg-violet-600 checked:border-violet-600 focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-background-dark cursor-pointer"
+                        />
 
                         <span>{text}</span>
                       </label>
                     ))}
-                  </div >
-                  <div className="flex justify-center mt-5">
-                      <button className=" flex justify-center bg-violet-800 hover:bg-violet-700 text-white font-large px-4 py-2 rounded-lg transition-colors duration-200">
-                    Submit Answer
-                  </button>
                   </div>
-                  
+                  <div className="flex justify-center mt-5">
+                    <button className=" flex justify-center bg-violet-800 hover:bg-violet-700 text-white font-large px-4 py-2 rounded-lg transition-colors duration-200">
+                      Submit Answer
+                    </button>
+                  </div>
                 </div>
 
                 {/* Progress Section */}
@@ -277,24 +292,36 @@ export default function Dashboard() {
                   <div className="space-y-4">
                     <div>
                       <div className="flex justify-between items-center mb-1">
-                        <p className="text-sm font-medium text-white">Courses Completed</p>
-                        <p className="text-sm font-medium text-primary">5 / 12</p>
+                        <p className="text-sm font-medium text-white">
+                          Courses Completed
+                        </p>
+                        <p className="text-sm font-medium text-primary">
+                          5 / 12
+                        </p>
                       </div>
                       <div className="w-full bg-white/10 rounded-full h-2.5">
-                        <div className="bg-violet-600 h-2.5 rounded-full" style={{ width: "42%" }}></div>
+                        <div
+                          className="bg-violet-600 h-2.5 rounded-full"
+                          style={{ width: "42%" }}
+                        ></div>
                       </div>
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-1">
-                        <p className="text-sm font-medium text-white">Quizzes Passed</p>
+                        <p className="text-sm font-medium text-white">
+                          Quizzes Passed
+                        </p>
                         <p className="text-sm font-medium text-primary">85%</p>
                       </div>
                       <div className="w-full bg-white/10 rounded-full h-2.5">
-                        <div className="bg-violet-600 h-2.5 rounded-full" style={{ width: "85%" }}></div>
+                        <div
+                          className="bg-violet-600 h-2.5 rounded-full"
+                          style={{ width: "85%" }}
+                        ></div>
                       </div>
                     </div>
                   </div>
-                 <ActivityGrid/>
+                  <ActivityGrid />
                 </div>
               </div>
             </main>
